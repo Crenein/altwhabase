@@ -15,14 +15,20 @@ def send_messages(token, messages):
             message = x['message']
             phone = str(x["phone"])
             message_id = x['id']
-            command = "docker exec robvanderleek/mudslide send "+phone+" "+"'"+message+"'"
-            commandout = subprocess.check_output(command, shell = True, timeout=60)
+            command = ['docker', 'run', '--rm', '-v', f'{os.getcwd()}/mudslide:/usr/src/app/cache', 'robvanderleek/mudslide', 'send', phone, message]
+            commandout = subprocess.check_output(command, timeout=60, stderr=subprocess.PIPE)
             if 'success' in commandout.decode("utf-8"):
                 success_send_message(token, message_id)
             else:
                 error_send_message(token, message_id)
             t = delay_message(token)
             time.sleep(t)
+        except subprocess.CalledProcessError as e:
+            with open('log/error.txt', 'a', encoding='utf-8') as log:
+                now = datetime.datetime.now()
+                log.write(f"{now} Docker command failed: {e.returncode} - {e.stderr.decode('utf-8') if e.stderr else 'No stderr'}\n")
+            error_send_message(token, message_id)
+            return False
         except Exception as e:
             with open('log/error.txt', 'a', encoding='utf-8') as log:
                 now = datetime.datetime.now()
