@@ -2,7 +2,11 @@ import os
 import time
 import datetime
 import subprocess
+from dotenv import load_dotenv
 from ispbaltwha import *
+
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 def send_messages(token, messages):
 
@@ -11,7 +15,7 @@ def send_messages(token, messages):
             message = x['message']
             phone = str(x["phone"])
             message_id = x['id']
-            command = "docker exec altwha mudslide send "+phone+" "+"'"+message+"'"
+            command = "docker exec robvanderleek/mudslide send "+phone+" "+"'"+message+"'"
             commandout = subprocess.check_output(command, shell = True, timeout=60)
             if 'success' in commandout.decode("utf-8"):
                 success_send_message(token, message_id)
