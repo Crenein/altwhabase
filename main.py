@@ -43,58 +43,80 @@ def connection_error():
 if __name__ == "__main__":
     
     while True:
-        #Obtener token
-        token = get_ispb_token()
+        try:
+            #Obtener token
+            token = get_ispb_token()
 
-        if token:
-            if is_valid_time():
-                #print("La hora actual está dentro del rango válido.")
+            if token:
+                try:
+                    if is_valid_time():
+                        #print("La hora actual está dentro del rango válido.")
 
-                #Cantidad de mensajes por ronda
-                mxr = message_per_round(token['token_access'])
-                if mxr == False:
-                    connection_error()
+                        #Cantidad de mensajes por ronda
+                        mxr = message_per_round(token['token_access'])
+                        if mxr == False:
+                            connection_error()
+                            continue
 
-                #Traer los mensajes de la ronda
-                messages = get_messages(token['token_access'], mxr) + get_noprocess_messages(token['token_access'], mxr)
-                if messages == False:
-                    connection_error()
+                        #Traer los mensajes de la ronda
+                        messages = get_messages(token['token_access'], mxr) + get_noprocess_messages(token['token_access'], mxr)
+                        if messages == False:
+                            connection_error()
+                            continue
 
-                #Enviar mensajes
-                if len(messages) > 0:
-                    output = send_messages(token['token_access'], messages)
+                        #Enviar mensajes
+                        if len(messages) > 0:
+                            output = send_messages(token['token_access'], messages)
 
-                    #Pausa
-                    pause_time = pause_send(token['token_access'])
-                    if pause_time:
-                        #print('Pausa de: '+str(pause_time)+' segundos')
-                        time.sleep(pause_time)
+                            #Pausa
+                            pause_time = pause_send(token['token_access'])
+                            if pause_time:
+                                #print('Pausa de: '+str(pause_time)+' segundos')
+                                time.sleep(pause_time)
+                            else:
+                                connection_error()
+
                     else:
-                        connection_error()
+                        #print("La hora actual está fuera del rango válido pero se enviarán mensajes urgentes")
+
+                        #Cantidad de mensajes por ronda
+                        mxr = message_per_round(token['token_access'])
+                        if mxr == False:
+                            connection_error()
+                            continue
+
+                        urgent_messages = get_urgent_messages(token['token_access'], mxr) + get_urgent_noprocess_messages(token['token_access'], mxr)
+                        if urgent_messages == False:
+                            connection_error()
+                            continue
+
+                        if len(urgent_messages) > 0:
+                            #Enviar mensajes
+                            output = send_messages(token['token_access'], urgent_messages)
+                            #Pausa
+                            pause_time = pause_send(token['token_access'])
+                            if pause_time:
+                                #print('Pausa de: '+str(pause_time)+' segundos')
+                                time.sleep(pause_time)
+                            else:
+                                connection_error()
+
+                except Exception as e:
+                    with open('log/error.txt', 'a', encoding='utf-8') as log:
+                        now = datetime.datetime.now()
+                        log.write(f"{now} Error en procesamiento principal: {repr(e)}\n")
+                    print(f"Error en procesamiento principal: {e}")
+                    time.sleep(60)
 
             else:
-                #print("La hora actual está fuera del rango válido pero se enviarán mensajes urgentes")
-
-                #Cantidad de mensajes por ronda
-                mxr = message_per_round(token['token_access'])
-                if mxr == False:
-                    connection_error()
-
-                urgent_messages = get_urgent_messages(token['token_access'], mxr) + get_urgent_noprocess_messages(token['token_access'], mxr)
-                if urgent_messages == False:
-                    connection_error()
-
-                if len(urgent_messages) > 0:
-                    #Enviar mensajes
-                    output = send_messages(token['token_access'], urgent_messages)
-                    #Pausa
-                    pause_time = pause_send(token['token_access'])
-                    if pause_time:
-                        #print('Pausa de: '+str(pause_time)+' segundos')
-                        time.sleep(pause_time)
-                    else:
-                        connection_error()
-
-        else:
-            print('El token esta vacio')
+                print('El token esta vacio')
+                time.sleep(60)
+                
+        except Exception as e:
+            with open('log/error.txt', 'a', encoding='utf-8') as log:
+                now = datetime.datetime.now()
+                log.write(f"{now} Error crítico en bucle principal: {repr(e)}\n")
+            print(f"Error crítico en bucle principal: {e}")
+            time.sleep(60)
+            
         time.sleep(60)
